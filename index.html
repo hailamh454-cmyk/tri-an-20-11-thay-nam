@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tri Ân 20/11 - Thầy Nam (Chuyên Vật Lý) | 3D Interactive Tribute</title>
+  
+  <!-- Typography: Math symbols, Chalkboard display, and Warm Editorial -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Caveat:wght@600;700&family=STIX+Two+Math&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&display=swap" rel="stylesheet">
+  
+  <!-- Inline Chalk Atom SVG Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23162821'/><circle cx='50' cy='50' r='12' fill='%23fef08a'/><ellipse cx='50' cy='50' rx='36' ry='14' fill='none' stroke='%2393c5fd' stroke-width='3' transform='rotate(30 50 50)'/><ellipse cx='50' cy='50' rx='36' ry='14' fill='none' stroke='%23fca5a5' stroke-width='3' transform='rotate(-30 50 50)'/></svg>">
+  
+  <link rel="stylesheet" href="css/main.css">
+
+  <!-- Three.js ES6 Import Map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"
+    }
+  }
+  </script>
+  <style>
+    #phase2-video-overlay {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 9000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+    }
+    #phase2-video-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+    #phase2-video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+    }
+    .video-skip-btn {
+      position: absolute;
+      top: 24px;
+      right: 28px;
+      background: rgba(18, 44, 31, 0.75);
+      border: 1px solid rgba(254, 240, 138, 0.45);
+      color: #fef08a;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      z-index: 10;
+      transition: all 0.2s;
+    }
+    .video-skip-btn:hover {
+      background: rgba(30, 70, 50, 0.9);
+      border-color: #fef08a;
+      transform: translateY(-2px);
+    }
+    /* ===== ENDING SCREEN (KOE NO KATACHI POSTER STYLE) ===== */
+    #ending-screen {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 9100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1.1s ease;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      user-select: none;
+    }
+
+    #ending-screen.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .ending-bg-photo {
+      position: absolute;
+      inset: -2%;
+      width: 104%;
+      height: 104%;
+      background-image: url('assets/ending_bg.jpg');
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      transform: scale(1.0);
+      will-change: transform;
+    }
+
+    #ending-screen.active .ending-bg-photo {
+      animation: endingSlowDrift 34s ease-in-out infinite alternate;
+    }
+
+    @keyframes endingSlowDrift {
+      0%   { transform: scale(1.00) translate3d(0, 0, 0); }
+      100% { transform: scale(1.06) translate3d(0, -1%, 0); }
+    }
+
+    /* Lớp sương siêu nhẹ trên vùng trời & mép đáy để chữ và nút rõ mà ảnh vẫn trong trẻo */
+    .ending-sky-scrim {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 68% 46% at 50% 28%, rgba(12, 42, 78, 0.34) 0%, rgba(12, 42, 78, 0.0) 75%),
+        linear-gradient(180deg, rgba(10, 34, 66, 0.24) 0%, rgba(10, 34, 66, 0.04) 55%, rgba(12, 24, 38, 0.26) 100%);
+      pointer-events: none;
+    }
+
+    /* Khối chữ đặt gọn trên nền trời xanh, ngay trên lan can cầu */
+    .ending-hero {
+      position: relative;
+      z-index: 3;
+      margin-top: clamp(6vh, 9.5vh, 12vh);
+      padding: 0 24px;
+      text-align: center;
+      max-width: 980px;
+      width: 100%;
+    }
+
+    .ending-eyebrow {
+      font-size: clamp(11px, 1.05vw, 13px);
+      font-weight: 500;
+      letter-spacing: 0.34em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.92);
+      text-shadow: 0 2px 12px rgba(10, 32, 60, 0.45);
+      margin-bottom: 14px;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.9s ease 0.25s, transform 0.9s ease 0.25s;
+    }
+
+    .ending-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic;
+      font-weight: 700;
+      font-size: clamp(32px, 4.6vw, 68px);
+      line-height: 1.15;
+      white-space: nowrap;
+      margin: 0;
+      color: #ffffff;
+      text-shadow:
+        0 2px 18px rgba(10, 34, 66, 0.48),
+        0 8px 36px rgba(10, 34, 66, 0.30);
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 1.05s ease 0.45s, transform 1.05s ease 0.45s;
+    }
+
+    .ending-name {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: clamp(28px, 3.8vw, 54px);
+      line-height: 1.24;
+      letter-spacing: 0.025em;
+      margin: 12px 0 0;
+      color: #fff8d6;
+      text-shadow:
+        0 2px 18px rgba(10, 34, 66, 0.54),
+        0 6px 32px rgba(10, 34, 66, 0.32);
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 1.1s ease 0.72s, transform 1.1s ease 0.72s;
+    }
+
+    .ending-divider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 16px auto 15px;
+      width: 160px;
+      opacity: 0;
+      transition: opacity 1s ease 0.95s;
+    }
+    .ending-divider::before,
+    .ending-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+    }
+    .ending-divider span {
+      color: #fff8d6;
+      font-size: 11px;
+      text-shadow: 0 0 10px rgba(255, 248, 214, 0.8);
+    }
+
+    .ending-wish {
+      font-size: clamp(14px, 1.3vw, 17.5px);
+      font-weight: 400;
+      line-height: 1.65;
+      margin: 0 auto;
+      max-width: 560px;
+      color: rgba(255, 255, 255, 0.95);
+      text-shadow: 0 2px 14px rgba(10, 32, 60, 0.55);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 1.1s ease 1.1s, transform 1.1s ease 1.1s;
+    }
+
+    #ending-screen.active .ending-eyebrow,
+    #ending-screen.active .ending-title,
+    #ending-screen.active .ending-name,
+    #ending-screen.active .ending-divider,
+    #ending-screen.active .ending-wish {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Ánh nắng chiều khẽ tỏa từ tán cây góc trên-phải */
+    .ending-sun-glow {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(circle at 86% 14%, rgba(255, 248, 210, 0.26) 0%, rgba(255, 236, 180, 0.08) 32%, transparent 60%);
+      animation: sunBreath 8s ease-in-out infinite alternate;
+    }
+    @keyframes sunBreath {
+      0%   { opacity: 0.72; }
+      100% { opacity: 1.0; }
+    }
+
+    /* Cánh hoa mảnh & đốm sáng bokeh bay chéo bằng pure CSS (0% CPU) */
+    .ending-atmosphere {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .ending-petal {
+      position: absolute;
+      top: -8%;
+      width: var(--sz, 11px);
+      height: calc(var(--sz, 11px) * 0.65);
+      left: var(--x, 50%);
+      border-radius: 80% 0 80% 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 218, 232, 0.78));
+      box-shadow: 0 0 8px rgba(255, 240, 245, 0.45);
+      opacity: 0;
+      will-change: transform, opacity;
+      animation: petalFall var(--dur, 14s) linear var(--delay, 0s) infinite;
+    }
+    .ending-bokeh {
+      position: absolute;
+      top: var(--y, 30%);
+      left: var(--x, 50%);
+      width: var(--sz, 18px);
+      height: var(--sz, 18px);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 252, 230, 0.75) 0%, rgba(255, 245, 200, 0.18) 55%, transparent 75%);
+      opacity: 0;
+      will-change: transform, opacity;
+      animation: bokehFloat var(--dur, 10s) ease-in-out var(--delay, 0s) infinite;
+    }
+    @keyframes petalFall {
+      0%   { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0; }
+      12%  { opacity: 0.82; }
+      85%  { opacity: 0.72; }
+      100% { transform: translate3d(-22vw, 112vh, 0) rotate(320deg); opacity: 0; }
+    }
+    @keyframes bokehFloat {
+      0%, 100% { transform: translate3d(0, 0, 0) scale(0.85); opacity: 0.15; }
+      50%      { transform: translate3d(14px, -22px, 0) scale(1.18); opacity: 0.62; }
+    }
+
+    /* Nút nhỏ xinh ở 2 góc dưới */
+    .ending-music-pill {
+      position: fixed;
+      left: 24px;
+      bottom: 22px;
+      z-index: 3;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.42);
+      background: rgba(16, 34, 52, 0.34);
+      color: rgba(255, 255, 255, 0.92);
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 12.5px;
+      font-weight: 400;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: background 0.25s ease, transform 0.25s ease, opacity 0.8s ease 1.3s;
+      opacity: 0;
+    }
+
+    .ending-corner-actions {
+      position: fixed;
+      right: 24px;
+      bottom: 22px;
+      z-index: 3;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      opacity: 0;
+      transition: opacity 0.8s ease 1.3s;
+    }
+
+    #ending-screen.active .ending-music-pill,
+    #ending-screen.active .ending-corner-actions {
+      opacity: 1;
+    }
+
+    .ending-mini-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.42);
+      background: rgba(16, 34, 52, 0.36);
+      color: rgba(255, 255, 255, 0.94);
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 4px 16px rgba(10, 24, 40, 0.18);
+      transition: background 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
+    }
+
+    .ending-mini-btn:hover,
+    .ending-music-pill:hover {
+      background: rgba(255, 255, 255, 0.26);
+      border-color: rgba(255, 255, 255, 0.82);
+      transform: translateY(-1.5px);
+    }
+
+    .ending-mini-btn svg,
+    .ending-music-pill svg {
+      width: 13px;
+      height: 13px;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 640px) {
+      .ending-title { white-space: normal; }
+      .ending-corner-actions {
+        right: 16px;
+        left: 16px;
+        bottom: 16px;
+        justify-content: center;
+      }
+      .ending-music-pill {
+        left: 16px;
+        bottom: 62px;
+      }
+    }
+    #letter-modal { z-index: 9500 !important; }
+
+    #letter-modal .parchment-letter-card {
+      font-family: 'Lora', Georgia, serif !important;
+    }
+    #letter-modal .letter-stamp-badge {
+      font-family: 'Be Vietnam Pro', sans-serif !important;
+      letter-spacing: 0.18em;
+    }
+    #letter-modal .letter-heading {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-style: italic;
+      font-weight: 700;
+      font-size: clamp(26px, 2.8vw, 34px) !important;
+      color: #3b2416;
+      margin-bottom: 16px;
+    }
+    #letter-modal .letter-epigraph {
+      margin: 0 0 18px;
+      padding: 10px 16px;
+      border-left: 2.5px solid rgba(146, 64, 14, 0.55);
+      background: rgba(146, 64, 14, 0.05);
+      font-family: 'Lora', Georgia, serif;
+      font-style: italic;
+      font-size: 15.5px;
+      line-height: 1.6;
+      color: #5c3a21;
+    }
+    #letter-modal .letter-epigraph cite {
+      display: block;
+      margin-top: 4px;
+      font-style: normal;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      color: #85583a;
+    }
+    #letter-modal .letter-body p {
+      font-family: 'Lora', Georgia, serif !important;
+      font-size: 16px !important;
+      line-height: 1.78 !important;
+      color: #2f1e14;
+      margin-bottom: 13px;
+    }
+    #letter-modal .letter-highlight {
+      font-size: 15.5px !important;
+      color: #6b3f1d !important;
+    }
+    #letter-modal .letter-signature span {
+      font-family: 'Be Vietnam Pro', sans-serif !important;
+      font-size: 12.5px;
+    }
+    #letter-modal .letter-signature strong {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-style: italic;
+      font-size: 19px;
+    }
+    #letter-modal .btn-start-chalkboard {
+      font-family: 'Be Vietnam Pro', sans-serif !important;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <!-- Full-Screen 3D WebGL Canvas (100vw x 100vh) -->
+  <canvas id="webgl-canvas"></canvas>
+
+  <!-- POPUP LETTER MODAL (Triggered by clicking 3D Kraft Envelope on Teacher Desk) -->
+  <div class="letter-modal-backdrop hidden" id="letter-modal">
+    <div class="parchment-letter-card">
+      <button class="close-letter-btn" id="close-letter-btn" aria-label="Đóng thư">&times;</button>
+      <div class="letter-stamp-badge">TRI ÂN 20/11</div>
+      
+      <div class="letter-content">
+        <h1 class="letter-heading">Thầy Nam kính mến,</h1>
+
+        <blockquote class="letter-epigraph">
+          “Điều gì không thể nói ra, người ta đành giữ im lặng.”
+          <cite>— Ludwig Wittgenstein</cite>
+        </blockquote>
+        
+        <div class="letter-body">
+          <p>
+            Em không giỏi nói những lời hoa mỹ, nên ngày 20/11 này, em chọn gửi Thầy một buổi chiều nắng muộn trong lớp học, vài nét phấn còn dang dở, và những thanh âm mà lời nói khó chạm tới hết.
+          </p>
+          <p>
+            Cảm ơn Thầy — không chỉ vì những quy luật của tự nhiên trên tấm bảng, mà còn vì cách Thầy dạy em biết dừng lại, biết nhìn sâu hơn vào những ngày tưởng chừng bình dị để thấy chúng đẹp đến nhường nào.
+          </p>
+          <p>
+            Chúc Thầy luôn khỏe mạnh, an nhiên, và mỗi khi mỏi mệt chỉ cần ngẩng lên là thấy một khoảng trời thật xanh.
+          </p>
+          <p class="letter-highlight">
+            <em>Phía sau vài bài toán nhỏ trên bảng kia còn một đoạn kết nữa — kính mời Thầy thử xem nhé.</em>
+          </p>
+        </div>
+
+        <div class="letter-footer">
+          <div class="letter-signature">
+            <span>Gửi Thầy nhân ngày 20/11</span>
+            <strong>— Hải Lâm</strong>
+          </div>
+          <button class="btn-start-chalkboard" id="btn-start-chalkboard">
+            Bước Lên Bục Giảng &#x27A4;
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 2 FULLSCREEN CINEMATIC VIDEO OVERLAY -->
+  <div id="phase2-video-overlay">
+    <button class="video-skip-btn" id="btn-skip-video">Bỏ qua &rarr;</button>
+    <video id="phase2-video" preload="auto" playsinline>
+      <source src="assets/sakura_no_uta_memories.mp4" type="video/mp4">
+    </video>
+  </div>
+
+  <!-- ENDING SCREEN (Koe no Katachi Poster Layout) -->
+  <div id="ending-screen">
+    <div class="ending-bg-photo" aria-hidden="true"></div>
+    <div class="ending-sky-scrim" aria-hidden="true"></div>
+    <div class="ending-sun-glow" aria-hidden="true"></div>
+
+    <div class="ending-atmosphere" aria-hidden="true">
+      <span class="ending-petal" style="--x: 18%; --sz: 10px; --dur: 13s; --delay: -2s;"></span>
+      <span class="ending-petal" style="--x: 32%; --sz: 12px; --dur: 15s; --delay: -7s;"></span>
+      <span class="ending-petal" style="--x: 45%; --sz: 9px; --dur: 12s; --delay: -11s;"></span>
+      <span class="ending-petal" style="--x: 58%; --sz: 13px; --dur: 16s; --delay: -4s;"></span>
+      <span class="ending-petal" style="--x: 72%; --sz: 11px; --dur: 14s; --delay: -9s;"></span>
+      <span class="ending-petal" style="--x: 84%; --sz: 12px; --dur: 17s; --delay: -1s;"></span>
+      <span class="ending-petal" style="--x: 26%; --sz: 9px; --dur: 14.5s; --delay: -5s;"></span>
+      <span class="ending-petal" style="--x: 64%; --sz: 11.5px; --dur: 13.5s; --delay: -12s;"></span>
+      <span class="ending-petal" style="--x: 79%; --sz: 10.5px; --dur: 15.5s; --delay: -8s;"></span>
+      <span class="ending-petal" style="--x: 92%; --sz: 13px; --dur: 18s; --delay: -3s;"></span>
+
+      <span class="ending-bokeh" style="--x: 22%; --y: 28%; --sz: 16px; --dur: 9s; --delay: -1s;"></span>
+      <span class="ending-bokeh" style="--x: 42%; --y: 35%; --sz: 22px; --dur: 11s; --delay: -5s;"></span>
+      <span class="ending-bokeh" style="--x: 68%; --y: 22%; --sz: 19px; --dur: 8.5s; --delay: -3s;"></span>
+      <span class="ending-bokeh" style="--x: 82%; --y: 32%; --sz: 24px; --dur: 12s; --delay: -7s;"></span>
+      <span class="ending-bokeh" style="--x: 35%; --y: 42%; --sz: 15px; --dur: 9.5s; --delay: -4s;"></span>
+      <span class="ending-bokeh" style="--x: 75%; --y: 45%; --sz: 20px; --dur: 10.5s; --delay: -2s;"></span>
+    </div>
+
+    <div class="ending-hero">
+      <div class="ending-eyebrow">Ngày Nhà Giáo Việt Nam &middot; 20 . 11</div>
+      <h1 class="ending-title">Chúc Mừng Ngày 20/11</h1>
+      <h2 class="ending-name">Thầy Nguyễn Khắc Nam</h2>
+      <div class="ending-divider"><span>✦</span></div>
+      <p class="ending-wish">
+        Chúc Thầy luôn khỏe mạnh, an nhiên — và mỗi khi mỏi mệt chỉ cần ngẩng lên là thấy một khoảng trời thật xanh.
+      </p>
+    </div>
+
+    <audio id="ending-bgm" src="assets/ending_bgm.mp3" loop preload="metadata"></audio>
+
+    <button id="btn-ending-music" class="ending-music-pill" title="Bật/Tắt nhạc nền">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle>
+      </svg>
+      <span id="ending-music-label">lit(var)</span>
+    </button>
+
+    <div class="ending-corner-actions">
+      <button id="btn-ending-replay-video" class="ending-mini-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="6 4 20 12 6 20 6 4"></polygon>
+        </svg>
+        <span>Xem lại video</span>
+      </button>
+      <button id="btn-ending-letter" class="ending-mini-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+        </svg>
+        <span>Đọc lại thư</span>
+      </button>
+      <button id="btn-ending-home" class="ending-mini-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path>
+        </svg>
+        <span>Về lớp học</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Floating Action Buttons: Quick Skip to Phase 3 & Audio Toggle -->
+  <button class="skip-phase-btn" id="skip-phase-btn" title="Chuyển nhanh đến Màn 3 Hố Đen (Phím 3) hoặc Kích hoạt Hố Đen (Phím B)">
+    <span class="skip-icon">&#x23ED;&#xFE0F;</span> <span id="skip-phase-text">Đến Màn 3 (Hố Đen)</span>
+  </button>
+
+  <!-- Floating Audio Toggle Button (Mute/Unmute) -->
+  <button class="audio-toggle-btn" id="audio-toggle-btn" title="Bật/Tắt âm thanh tổng hợp">
+    <span id="audio-icon">&#x1F50A;</span>
+  </button>
+
+  <!-- ES6 Modules Central Entrypoint -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

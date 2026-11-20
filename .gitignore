@@ -1,0 +1,7 @@
+node_modules/
+blender_25d/
+scratch/
+.agents/
+.DS_Store
+Thumbs.db
+*.log
